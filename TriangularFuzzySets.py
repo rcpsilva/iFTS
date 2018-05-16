@@ -10,11 +10,12 @@ class TriangularFuzzySets(FuzzySets):
     classdocs
     '''
     
-    def __init__(self, parameters):
+    def __init__(self, parameters = []):
         '''
         Constructor
         '''
-        self.parameters = parameters
+        # Call superclass (FuzzySets) constructor
+        super(TriangularFuzzySets, self).__init__(parameters)
 
     def membership(self,x,setparams):
         """Computes the membership of a value with respect to the fuzzy set defined by setparameters. 
