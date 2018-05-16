@@ -20,15 +20,17 @@ class FuzzySets(metaclass = ABCMeta):
         '''
         self.parameters = parameters
     
-    def set_parameters(self,parameters):
-        '''Set the list of fuzzy set parameters
+    def __setattr__(self, attr, value):
+        if attr == 'parameters': # Set the list of fuzzy set parameters
+            self.__dict__[attr] = value
+        else:
+            raise AttributeError(attr)
         
-        Args:
-            x: List of parameters
-        
-        '''
-        
-        self.parameters = parameters
+    def __getattr__(self, attr):
+        if attr == 'parameters': # Get the list of fuzzy set parameters
+            return self.parameters
+        else:
+            raise AttributeError(attr) 
     
     def compute_memberships(self, x):
         """Computes the membership of a value or array of values with respect to 'this' fuzzysets.
