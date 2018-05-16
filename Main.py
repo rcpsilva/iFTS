@@ -8,6 +8,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 from iFTS.TriangularFuzzySets import TriangularFuzzySets
+from iFTS.FTS import FTS
+import iFTS.Partioner as pt
 
 
 def generate_data(nsamples):
@@ -48,9 +50,29 @@ def plot_data(data):
     plt.show()
 
 def main():
-    set_parameters = [[0.3,1,1.7],[1.3,2,2.7],[2.3,3,3.7],[3.3,4,4.7],[4.3,5,5.7]]
+    
+    
+    
+    set_parameters = pt.generate_uniform_triangular_partitions(1, 5, 5, 1.4)
+    print(set_parameters)
     fuzzysets = TriangularFuzzySets(set_parameters)
-    fuzzysets.plot_fuzzy_sets(0, 6, 1000)
+    vals = [2,1,2,3,2,1]
+    
+    fuzzysets.plot_fuzzy_sets(0, 6)
+    
+    print(fuzzysets.centers())
+    
+    fts = FTS(fuzzysets,data = vals)
+    fts.generate_rules()
+    
+    print(fts.fuzzify(vals))
+    
+    print(fts.rules)
+    
+    fts.print_rules()
+
+    print(fts.predict(vals))
+    #fuzzysets.plot_fuzzy_sets(0, 6, 1000)
     
 
 if __name__ == '__main__':
