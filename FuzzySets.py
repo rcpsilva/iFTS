@@ -65,7 +65,20 @@ class FuzzySets(metaclass = ABCMeta):
             
         """
         pass
-        
+    
+    @abstractmethod    
+    def centers(self):
+        """Computes the membership of a value with respect to the fuzzy set defined by setparames.
+
+        Args:
+            x: Point
+            setparams: Fuzzy set paramenters
+
+        Returns:
+            mu: membership 
+            
+        """
+        pass    
             
     def plot_fuzzy_sets(self, start, stop, nsteps = 1000):       
         """Plots the fuzzy sets for a given interval.

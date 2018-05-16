@@ -4,6 +4,7 @@ Created on May 15, 2018
 @author: rcpsi
 '''
 from iFTS.FuzzySets import FuzzySets
+import numpy as np
 
 class TriangularFuzzySets(FuzzySets):
     '''
@@ -17,6 +18,14 @@ class TriangularFuzzySets(FuzzySets):
         # Call superclass (FuzzySets) constructor
         super(TriangularFuzzySets, self).__init__(parameters)
 
+
+    def centers(self):
+        centers = np.zeros(len(self.parameters))
+        for i in range(len(self.parameters)):
+            centers[i] = self.parameters[i][1]
+        
+        return centers
+        
     def membership(self,x,setparams):
         """Computes the membership of a value with respect to the fuzzy set defined by setparameters. 
         This specific method implements triangular fuzzy sets. 

@@ -6,18 +6,12 @@ Created on May 11, 2018
 
 import numpy as np
 
-class Partioner(object):
-    '''
-    classdocs
-    '''
-
-
-    def __init__(self, params):
-        '''
-        Constructor
-        '''
     
-    def generate_partitions(self):
-        partitions = np.ndarray((3,3))
+def generate_uniform_triangular_partitions(lb, ub, num, width):
+    
+    centers = np.linspace(lb, ub, num)
+    partitions = []
+    for c in centers:
+        partitions.append([c-width/2,c,c+width/2])
          
-        return partitions
+    return partitions
