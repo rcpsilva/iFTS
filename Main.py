@@ -10,6 +10,7 @@ import time
 from iFTS.TriangularFuzzySets import TriangularFuzzySets
 from iFTS.FTS import FTS
 import iFTS.Partioner as pt
+from pyFTS.data import TAIEX
 
 
 def generate_data(nsamples):
@@ -50,7 +51,7 @@ def plot_data(data):
     plt.show()
 
 def main():
-    
+    ''''
     # Load data
     nsamples = 500
     vals = generate_data(nsamples)
@@ -76,20 +77,51 @@ def main():
     
     fts.print_rules()
     
-    p = fts.predict(vals[train_end:499,1])
+    p1 = fts.predict(vals[train_end:499,1], dtype = 'weighted average')
+    p2 = fts.predict(vals[train_end:499,1], dtype = 'center average')
+    p3 = fts.predict(vals[train_end:499,1], dtype = 'center')
     
     plt.subplot(2, 1, 1)
     fuzzysets.plot_fuzzy_sets(100, 320,30 , 10, 1000)
-    plt.plot(vals[:,0],vals[:,1],vals[(train_end+1):500,0],p)
-    plt.plot(vals[(train_end+1):500,0],p)
+    plt.plot(vals[:,0],vals[:,1])
+    #plt.plot(vals[(train_end+1):500,0],p1)
+    #plt.plot(vals[(train_end+1):500,0],p2)
+    plt.plot(vals[(train_end+1):500,0],p3)
     
     plt.subplot(2, 1, 2)
     plt.hist(vals[:,1], bins='auto')
 
     plt.show()
     #print(p)
+    '''
     
-
+    vals = TAIEX.get_data()
+    #print(vals.shape)
+    #plt.plot(vals)
+    
+    
+    # Generate partitioner
+    set_parameters = pt.generate_uniform_triangular_partitions(np.min(vals), np.max(vals), 9, 1700)
+    # Generate fuzzysets
+    fuzzysets = TriangularFuzzySets(set_parameters)
+    fuzzysets.plot_fuzzy_sets(np.min(vals), np.max(vals),begin = 3000 , scale = 400, nsteps = 1000)
+    
+    train_end = 2500
+    
+    fts = FTS(fuzzysets,data = vals[0:train_end])
+    # Train FTS
+    fts.generate_rules()
+    fts.print_rules()
+    
+    p2 = fts.predict(vals[train_end+1000:(len(vals)-1)], dtype = 'center average')
+    p3 = fts.predict(vals[train_end+1000:(len(vals)-1)], dtype = 'weighted average')
+    
+    plt.plot(np.linspace(train_end+1000+1, len(vals), len(p3)),p3)
+    plt.plot(np.linspace(train_end+1000+1, len(vals), len(p3)),p2)
+    plt.plot(np.linspace(train_end+1000+1, len(vals), len(p3)),vals[train_end+1000+1:(len(vals))])
+    
+    plt.show()
+    
 if __name__ == '__main__':
     main()
     
