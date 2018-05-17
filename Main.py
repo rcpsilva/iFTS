@@ -15,7 +15,7 @@ import iFTS.Partioner as pt
 def generate_data(nsamples):
 
     timeStamps = np.linspace(10, 1000, num=nsamples)*0.05+50;
-    irradiance = np.sin(timeStamps)*timeStamps+timeStamps*5
+    irradiance = np.sin(timeStamps/np.pi)*np.sin(timeStamps)*timeStamps + 200
 
     data = np.concatenate((np.transpose([timeStamps]),np.transpose([irradiance])), axis = 1)
 
@@ -31,8 +31,8 @@ def plot_data(data):
     nsamples = data.shape[0]
  
     axes = plt.gca()
-    axes.set_xlim(50, nsamples)
-    axes.set_ylim(100, 1000)
+    axes.set_xlim(np.min(data[:,0]), np.max(data[:,0]), nsamples)
+    axes.set_ylim(np.min(data[:,1]), np.max(data[:,1]))
     line, = axes.plot(xdata, ydata, 'r-')
     
    
@@ -44,35 +44,50 @@ def plot_data(data):
         line.set_ydata(ydata)
         plt.draw()
         plt.pause(1e-17)
-        time.sleep(0.1)
+        time.sleep(0.001)
        
 
     plt.show()
 
 def main():
     
+    # Load data
+    nsamples = 500
+    vals = generate_data(nsamples)
+    #plot_data(data)
     
+    # Set up FTS parameter
     
-    set_parameters = pt.generate_uniform_triangular_partitions(1, 5, 5, 1.4)
-    print(set_parameters)
+    # Generate partitioner
+    set_parameters = pt.generate_uniform_triangular_partitions(np.min(vals[:,1]), np.max(vals[:,1]), 6, 50)
+    # Generate fuzzysets
     fuzzysets = TriangularFuzzySets(set_parameters)
-    vals = [2,1,2,3,2,1]
+    fuzzysets.plot_fuzzy_sets(100, 320,30 , 10, 1000)
     
-    fuzzysets.plot_fuzzy_sets(0, 6)
+    train_end = 250
+    plt.plot(vals[:,0],vals[:,1])
+    plt.plot(vals[0:train_end,0],vals[0:train_end,1])
     
-    print(fuzzysets.centers())
     
-    fts = FTS(fuzzysets,data = vals)
+    # Generate FTS
+    fts = FTS(fuzzysets,data = vals[0:train_end,1])
+    # Train FTS
     fts.generate_rules()
     
-    print(fts.fuzzify(vals))
-    
-    print(fts.rules)
-    
     fts.print_rules()
+    
+    p = fts.predict(vals[train_end:499,1])
+    
+    plt.subplot(2, 1, 1)
+    fuzzysets.plot_fuzzy_sets(100, 320,30 , 10, 1000)
+    plt.plot(vals[:,0],vals[:,1],vals[(train_end+1):500,0],p)
+    plt.plot(vals[(train_end+1):500,0],p)
+    
+    plt.subplot(2, 1, 2)
+    plt.hist(vals[:,1], bins='auto')
 
-    print(fts.predict(vals))
-    #fuzzysets.plot_fuzzy_sets(0, 6, 1000)
+    plt.show()
+    #print(p)
     
 
 if __name__ == '__main__':

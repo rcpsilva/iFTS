@@ -58,10 +58,8 @@ class FTS(object):
         self.rules = []
                 
         # Start using sets because it is neater
-        count = 0
-        while count <= np.max(fuzzified_data):
+        for i in range(len(self.fuzzy_sets.centers)):
             self.rules.append(set())
-            count += 1
         
         for i in range(len(fuzzified_data)-1):
             fuzzified_data[i]
@@ -101,31 +99,39 @@ class FTS(object):
         """
         # Fuzzify
         membership_matrix = self.fuzzy_sets.compute_memberships(x)
-        centers = self.fuzzy_sets.centers();
+        centers = self.fuzzy_sets.centers;
         fuzzified_data = self.fuzzify(x,self.ftype,membership_matrix = membership_matrix)
         
         def_vals = np.zeros(len(fuzzified_data))
         # Find matching antecendents
         for i in range(len(fuzzified_data)):
             # Find matching antecendents
-            matching_rule = self.rules[fuzzified_data[i]]
-            print('---------------')
-            print(matching_rule)
+            idx = fuzzified_data[i]
+            
+            matching_rule = self.rules[idx]
+            
+            ######## GAMBIARRA! ######
+            while (not matching_rule) and ((idx+1) < len(self.rules)):
+                idx += 1
+                matching_rule = self.rules[idx]
+            
+            idx = fuzzified_data[i]
+            while (not matching_rule) and ((idx-1) > 0):
+                idx -= 1
+                matching_rule = self.rules[idx]
+            ##########################    
+                
             
             # Compute the degree of fulfilment (df) of the rule
             df = membership_matrix[i,fuzzified_data[i]]
             
-            print(df)
             # Defuzzify
             
             for j in range(len(matching_rule)):
                 def_vals[i] = def_vals[i] + centers[matching_rule[j]] * df
-                print(def_vals[i])
         
             def_vals[i] = def_vals[i] / (df * len(matching_rule))    
-    
-            
-            print('---------------')
+
         # Return defuzified values
         return def_vals 
      

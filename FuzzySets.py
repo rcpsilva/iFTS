@@ -19,9 +19,12 @@ class FuzzySets(metaclass = ABCMeta):
         Constructor
         '''
         self.parameters = parameters
+        self.centers = self.centers();
     
     def __setattr__(self, attr, value):
         if attr == 'parameters': # Set the list of fuzzy set parameters
+            self.__dict__[attr] = value
+        elif attr == 'centers': # Set the list of fuzzy set parameters
             self.__dict__[attr] = value
         else:
             raise AttributeError(attr)
@@ -80,7 +83,7 @@ class FuzzySets(metaclass = ABCMeta):
         """
         pass    
             
-    def plot_fuzzy_sets(self, start, stop, nsteps = 1000):       
+    def plot_fuzzy_sets(self, start, stop, begin = 0, scale = 1, nsteps = 1000):       
         """Plots the fuzzy sets for a given interval.
 
         Args:
@@ -98,7 +101,7 @@ class FuzzySets(metaclass = ABCMeta):
     
         #Plot sets
         for i in range(membership.shape[1]):
-            plt.plot(x,membership[:,i])
+            plt.plot(membership[:,i]*scale + begin,x)
             
-        plt.show()     
+        #plt.show()     
             
