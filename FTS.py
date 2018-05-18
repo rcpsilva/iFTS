@@ -133,10 +133,15 @@ class FTS(object):
                     # Compute the membership of x in the antecendent j
                     mu = memberships[j]
                     term = 0;
+                    
                     for k in range(len(self.rules[j])):
                         term = term + centers[self.rules[j][k]]
-
-                    def_vals[i]  = def_vals[i] + (term/len(self.rules[j]))*mu 
+                    
+                    if self.rules[j]:
+                        def_vals[i] = def_vals[i] + (term/len(self.rules[j]))*mu 
+                    else:
+                        #def_vals[i] = def_vals[i] + x[i]*mu
+                        def_vals[i] = x[i] 
         # Return defuzified values
         return def_vals 
     

@@ -16,7 +16,7 @@ from pyFTS.data import TAIEX
 def generate_data(nsamples):
 
     timeStamps = np.linspace(10, 1000, num=nsamples)*0.05+50;
-    irradiance = np.sin(timeStamps/np.pi)*np.sin(timeStamps)*timeStamps + 200
+    irradiance = np.sin(timeStamps/np.pi)*np.sin(timeStamps)*timeStamps*3 + 200
 
     data = np.concatenate((np.transpose([timeStamps]),np.transpose([irradiance])), axis = 1)
 
@@ -94,18 +94,20 @@ def main():
     plt.show()
     #print(p)
     '''
-    
     vals = TAIEX.get_data()
-    #print(vals.shape)
-    #plt.plot(vals)
+    #vals = generate_data(4000)
+    #vals = vals[:,1];
+    
+    print(vals.shape)
+    plt.plot(vals)
     
     # Generate partitioner
     set_parameters = pt.generate_uniform_triangular_partitions(np.min(vals), np.max(vals), 7)
     # Generate fuzzysets
     fuzzysets = TriangularFuzzySets(set_parameters)
-    fuzzysets.plot_fuzzy_sets(np.min(vals), np.max(vals),begin = 2000 , scale = 400, nsteps = 1000)
+    fuzzysets.plot_fuzzy_sets(np.min(vals), np.max(vals),begin = -500 , scale = 400, nsteps = 1000)
     
-    train_end = 2500
+    train_end = 300
     
     fts = FTS(fuzzysets,data = vals[0:train_end])
     # Train FTS
@@ -116,10 +118,14 @@ def main():
     p2 = fts.predict(vals[train_end:(len(vals)-1)], dtype = 'center average')
     p1 = fts.predict(vals[train_end:(len(vals)-1)], dtype = 'persistence')
     
-    plt.plot(np.linspace(train_end-0.5, len(vals), len(p3)),p3)
+    plt.plot(np.linspace(train_end+1, len(vals), len(p3)),p3)
     #plt.plot(np.linspace(train_end, len(vals), len(p3)),p2)
     #plt.plot(np.linspace(train_end+1, len(vals), len(p3)),p1)
-    plt.plot(np.linspace(train_end+1, len(vals), len(p3)),vals[(train_end+1):(len(vals))])
+    #plt.plot(np.linspace(train_end+1, len(vals), len(p3)),vals[(train_end+1):(len(vals))])
+    
+    print(p3.shape)
+    print(vals[(train_end+1):(len(vals))].shape)
+    
     
     plt.show()
     
