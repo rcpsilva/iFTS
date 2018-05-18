@@ -7,9 +7,9 @@ Created on May 11, 2018
 import numpy as np
 import matplotlib.pyplot as plt
 import time
-from iFTS.TriangularFuzzySets import TriangularFuzzySets
-from iFTS.FTS import FTS
-import iFTS.Partioner as pt
+from TriangularFuzzySets import TriangularFuzzySets
+from FTS import FTS
+import Partioner as pt
 from pyFTS.data import TAIEX
 
 
@@ -99,12 +99,11 @@ def main():
     #print(vals.shape)
     #plt.plot(vals)
     
-    
     # Generate partitioner
-    set_parameters = pt.generate_uniform_triangular_partitions(np.min(vals), np.max(vals), 9, 1700)
+    set_parameters = pt.generate_uniform_triangular_partitions(np.min(vals), np.max(vals), 7)
     # Generate fuzzysets
     fuzzysets = TriangularFuzzySets(set_parameters)
-    fuzzysets.plot_fuzzy_sets(np.min(vals), np.max(vals),begin = 3000 , scale = 400, nsteps = 1000)
+    fuzzysets.plot_fuzzy_sets(np.min(vals), np.max(vals),begin = 2000 , scale = 400, nsteps = 1000)
     
     train_end = 2500
     
@@ -113,12 +112,14 @@ def main():
     fts.generate_rules()
     fts.print_rules()
     
-    p2 = fts.predict(vals[train_end+1000:(len(vals)-1)], dtype = 'center average')
-    p3 = fts.predict(vals[train_end+1000:(len(vals)-1)], dtype = 'weighted average')
+    p3 = fts.predict(vals[train_end:(len(vals)-1)], dtype = 'defuzz1')
+    p2 = fts.predict(vals[train_end:(len(vals)-1)], dtype = 'center average')
+    p1 = fts.predict(vals[train_end:(len(vals)-1)], dtype = 'persistence')
     
-    plt.plot(np.linspace(train_end+1000+1, len(vals), len(p3)),p3)
-    plt.plot(np.linspace(train_end+1000+1, len(vals), len(p3)),p2)
-    plt.plot(np.linspace(train_end+1000+1, len(vals), len(p3)),vals[train_end+1000+1:(len(vals))])
+    plt.plot(np.linspace(train_end-0.5, len(vals), len(p3)),p3)
+    #plt.plot(np.linspace(train_end, len(vals), len(p3)),p2)
+    #plt.plot(np.linspace(train_end+1, len(vals), len(p3)),p1)
+    plt.plot(np.linspace(train_end+1, len(vals), len(p3)),vals[(train_end+1):(len(vals))])
     
     plt.show()
     
