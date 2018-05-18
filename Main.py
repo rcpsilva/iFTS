@@ -94,9 +94,9 @@ def main():
     plt.show()
     #print(p)
     '''
-    vals = TAIEX.get_data()
-    #vals = generate_data(4000)
-    #vals = vals[:,1];
+    #vals = TAIEX.get_data()
+    vals = generate_data(4000)
+    vals = vals[:,1];
     
     print(vals.shape)
     plt.plot(vals)
@@ -107,7 +107,7 @@ def main():
     fuzzysets = TriangularFuzzySets(set_parameters)
     fuzzysets.plot_fuzzy_sets(np.min(vals), np.max(vals),begin = -500 , scale = 400, nsteps = 1000)
     
-    train_end = 300
+    train_end = 1000
     
     fts = FTS(fuzzysets,data = vals[0:train_end])
     # Train FTS

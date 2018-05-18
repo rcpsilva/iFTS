@@ -129,6 +129,7 @@ class FTS(object):
                 # Defuzzify
             
                 #For each rule
+                match = True
                 for j in range(len(self.rules)):
                     # Compute the membership of x in the antecendent j
                     mu = memberships[j]
@@ -140,8 +141,9 @@ class FTS(object):
                     if self.rules[j]:
                         def_vals[i] = def_vals[i] + (term/len(self.rules[j]))*mu 
                     else:
-                        #def_vals[i] = def_vals[i] + x[i]*mu
-                        def_vals[i] = x[i] 
+                        match = False
+            if not match:
+                def_vals[i] = x[i] 
         # Return defuzified values
         return def_vals 
     
