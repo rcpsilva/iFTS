@@ -3,7 +3,7 @@ Created on May 15, 2018
 
 @author: rcpsi
 '''
-from iFTS.FuzzySets import FuzzySets
+from FuzzySets import FuzzySets
 import numpy as np
 
 class TriangularFuzzySets(FuzzySets):

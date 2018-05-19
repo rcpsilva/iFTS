@@ -82,20 +82,24 @@ class FTS(object):
                 for j in range(len(self.rules[i])):
                     s = s + 'A{} '.format(self.rules[i][j]+1)     
                 print(s)   
-              
+    
     def predict(self, x, dtype = 'center average'):
         
         if dtype == 'center average':
             return self.defuzzify_center_average(x)
         elif dtype == 'weighted average':
             return self.defuzzify_weighted_average(x)
-        elif dtype == 'center':
-            return self.defuzzify_center(x)
-    
-    
-    def defuzzify_center(self,x):
+        elif dtype == 'persistence':
+            return self.persistence(x)
+        elif dtype == 'defuzz1':
+            print('Running defuzz 1')
+            return self.defuzz1(x)
+            
+    def persistence(self, x):
         return x
-        '''Computes the defuzzified (numerical) values of x according to the model defined by this fts .
+    
+    def defuzz1(self,x):
+        """Computes the defuzzified (numerical) values of x according to the model defined by this fts .
 
         Args:
             x: Value or array of values 
@@ -103,29 +107,45 @@ class FTS(object):
         Returns:
             y: membership matrix
             
-        
+        """
         # Fuzzify
         membership_matrix = self.fuzzy_sets.compute_memberships(x)
         centers = self.fuzzy_sets.centers;
-        fuzzified_data = self.fuzzify(x,self.ftype,membership_matrix = membership_matrix)
         
-        def_vals = np.zeros(len(fuzzified_data)) #storage for the defuzified values
-        
+        def_vals = np.zeros(len(x)) #storage for the defuzified values
         # Find matching antecendents
-        for i in range(len(fuzzified_data)):                        
+        for i in range(len(x)):
             
-            idx = fuzzified_data[i]
-            matching_rule = self.rules[idx]
+            memberships = membership_matrix[i,:]                        
+            # If the data point has no pertinence with respect to any rule use the rule with the closest center to the data point\
+            if np.sum(memberships) == 0:
+                dists = (centers-x[i])**2
+                closest = np.argmin(dists);
+                def_vals[i] = centers[closest]
+                print('whooops')
+            else:    
+                # Compute the degree of fulfilment (df) of the rule
             
-            if not matching_rule:
-                print('OOOOPs!!!')
-                #def_vals[i] = centers[idx]
-            else:
-                def_vals[i] = np.mean(centers[matching_rule])        
-
+                # Defuzzify
+            
+                #For each rule
+                match = True
+                for j in range(len(self.rules)):
+                    # Compute the membership of x in the antecendent j
+                    mu = memberships[j]
+                    term = 0;
+                    
+                    for k in range(len(self.rules[j])):
+                        term = term + centers[self.rules[j][k]]
+                    
+                    if self.rules[j]:
+                        def_vals[i] = def_vals[i] + (term/len(self.rules[j]))*mu 
+                    else:
+                        match = False
+            if not match:
+                def_vals[i] = x[i] 
         # Return defuzified values
         return def_vals 
-        '''
     
     def defuzzify_center_average(self,x):
         """Computes the defuzzified (numerical) values of x according to the model defined by this fts .
