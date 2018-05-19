@@ -106,7 +106,7 @@ def main():
     fuzzysets = TriangularFuzzySets(set_parameters)
     fuzzysets.plot_fuzzy_sets(np.min(vals), np.max(vals),begin = 3000 , scale = 400, nsteps = 1000)
     
-    train_end = 2500
+    train_end = 250
     
     fts = FTS(fuzzysets,data = vals[0:train_end])
     # Train FTS
