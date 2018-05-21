@@ -11,7 +11,7 @@ class FTS(object):
     classdocs
     '''
 
-    def __init__(self, fuzzy_sets, data, ftype = 'max'):
+    def __init__(self, fuzzy_sets, data, partitioner, ftype = 'max'):
         '''
         Constructor
         '''
@@ -19,6 +19,7 @@ class FTS(object):
         self.rules = None
         self.ftype = ftype
         self.data = data
+        self.partiotioner = partitioner
     
     def __getattr__(self, attr):
         
