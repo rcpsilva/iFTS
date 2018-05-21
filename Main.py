@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import time
 from iFTS.TriangularFuzzySets import TriangularFuzzySets
 from iFTS.FTS import FTS
+from iFTS.IncrementalFTS import IncrementalFTS
 import iFTS.Partioner as pt
 from pyFTS.data import TAIEX
 
@@ -99,33 +100,25 @@ def main():
     #vals = vals[:,1];
     
     print(vals.shape)
-    plt.plot(vals)
     
-    # Generate partitioner
-    set_parameters = pt.generate_uniform_triangular_partitions(np.min(vals), np.max(vals), 7)
-    # Generate fuzzysets
-    fuzzysets = TriangularFuzzySets(set_parameters)
-    fuzzysets.plot_fuzzy_sets(np.min(vals), np.max(vals),begin = -500 , scale = 400, nsteps = 1000)
-    
-    train_end = 1000
-    
-    fts = FTS(fuzzysets,data = vals[0:train_end])
+    train_end = 2000
+        
+    fts = IncrementalFTS(data = vals[0:train_end],lb = np.min(vals), ub = np.max(vals), dtype = 'center average')
     # Train FTS
     fts.generate_rules()
     fts.print_rules()
     
-    p3 = fts.predict(vals[train_end:(len(vals)-1)], dtype = 'defuzz1')
-    p2 = fts.predict(vals[train_end:(len(vals)-1)], dtype = 'center average')
-    p1 = fts.predict(vals[train_end:(len(vals)-1)], dtype = 'persistence')
+    fts.fuzzy_sets.plot_fuzzy_sets(np.min(vals), np.max(vals),begin = -500 , scale = 400, nsteps = 1000)
     
-    plt.plot(np.linspace(train_end+1, len(vals), len(p3)),p3)
+    p3 = fts.predict(vals[train_end:(len(vals)-1)])
+    #p2 = fts.predict(vals[train_end:(len(vals)-1)], dtype = 'center average')
+    #p1 = fts.predict(vals[train_end:(len(vals)-1)], dtype = 'persistence')
+    
+    plt.plot(p3)
+    plt.plot(vals[(train_end):(len(vals))])
     #plt.plot(np.linspace(train_end, len(vals), len(p3)),p2)
     #plt.plot(np.linspace(train_end+1, len(vals), len(p3)),p1)
     #plt.plot(np.linspace(train_end+1, len(vals), len(p3)),vals[(train_end+1):(len(vals))])
-    
-    print(p3.shape)
-    print(vals[(train_end+1):(len(vals))].shape)
-    
     
     plt.show()
     

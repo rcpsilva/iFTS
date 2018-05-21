@@ -1,5 +1,5 @@
 '''
-Created on May 11, 2018
+Created on May 21, 2018
 
 @author: rcpsi
 '''
@@ -7,45 +7,133 @@ Created on May 11, 2018
 import numpy as np
 import iFTS.Partioner as partitioner
 import iFTS.TriangularFuzzySets as tfs
+from iFTS.DataStats import DataStats
 
-class FTS(object):
+class IncrementalFTS(object):
     '''
     classdocs
     '''
-
-    def __init__(self, data, lb = None, ub = None, partition_method = 'triangular uniform', ftype = 'max'):
+    
+    def __init__(self, data, lb = None, ub = None, partition_method = 'triangular uniform', ftype = 'max', dtype = 'center average', incremental = False):
         '''
         Constructor
         '''
-        #self.fuzzy_sets = fuzzy_sets 
+        self.nsets = 7
+        
         self.rules = None
+        self.partitions = None
+        self.fuzzy_sets = None
+        
         self.ftype = ftype
+        self.dtype = dtype
+        
         self.data = data
-        self.def_vals = [];
+        self.ulb = None
+        self.uub = None
+        self.partitions = None
+        self.fuzzy_sets = None
+        self.current = None
         
-        # Define universe of discourse
-        if not lb:
-            lb = np.min(data)
-        if not ub:
-            ub = np.max(data)
+        # Stores basic data stats
+        self.datastats = DataStats(np.mean(data), np.std(data), np.min(data), np.max(data),n = len(data))
         
-        if partition_method == 'triangular uniform':
-            self.partitions = partitioner.generate_uniform_triangular_partitions(lb, ub, 7)
-            self.fuzzy_sets = tfs.TriangularFuzzySets(self.partitions)
+        if not incremental:
+            # Define universe of discourse
+            if not lb:
+                self.ulb = np.minimum(self.datastats.min,self.datastats.mean - 3*self.datastats.std)
+            else:
+                self.ulb = lb
             
+            if not ub:   
+                self.uub = np.maximum(self.datastats.max,self.datastats.mean + 3*self.datastats.std)
+            else:
+                self.uub = ub
+            
+        # Generate initial partions    
+            if partition_method == 'triangular uniform':
+                self.partitions = partitioner.generate_uniform_triangular_partitions(self.ulb, self.uub, self.nsets)
+                self.fuzzy_sets = tfs.TriangularFuzzySets(self.partitions)
+    
+        else:
+            self.current = data;
     
     def __getattr__(self, attr):
         
-        if attr == 'fuzzy_sets': # Get the list of fuzzy set parameters
+        if attr == 'fuzzy_sets':
             return self.fuzzy_sets
         elif attr == 'rules':
             return self.rules
-        elif attr == 'def_vals':
-            return self.def_vals
+        elif attr == 'datastats':
+            return self.datastats
+        elif attr == 'partitions':
+            return self.partitions
+        elif attr == 'ulb':
+            return self.ulb
+        elif attr == 'uub':
+            return self.uub
         else:
             raise AttributeError(attr) 
+        
+    def run(self,x):
+        # Update universe of discourse
+        ## Update mean and std
+        n = self.datastats.n + 1 
+        newmean = self.datastats.mean + (x - self.datastats.mean)/n
+        var = self.datastats.std**2
+        newstd =  np.sqrt( (n-2)/(n-1) * var + (1/n) * (x - self.datastats.mean)**2)
+        self.datastats.mean = newmean;
+        self.datastats.std = newstd;       
+        ## Update max
+        self.datastats.max = np.maximum(self.datastats.max,x)
+        ## Update mean
+        self.datastats.min = np.minimum(self.datastats.min,x)
+        
+        
+        #Update universe of discourse
+        self.ulb = np.minimum(self.datastats.min,self.datastats.mean - 3*self.datastats.std)
+        self.uub = np.maximum(self.datastats.max,self.datastats.mean + 3*self.datastats.std)
+        
+        # Generate partitions and fuzzy sets
+        new_partitions = partitioner.generate_uniform_triangular_partitions(self.ulb, self.uub, self.nsets)
+        new_fuzzy_sets = tfs.TriangularFuzzySets(self.partitions)
+        
+        # Map old fuzzy sets to new ones
+        ## Fuzzify old centers according to the new fuzzy sets
+        centers_membership_matrix = new_fuzzy_sets.compute_memberships(self.fuzzy_sets.centers)
+        mappings = self.fuzzify(self.fuzzy_sets.centers, membership_matrix = centers_membership_matrix)
+        
+        # Update rules
+        if not self.rules: # If there are no rules
+            self.generate_rules()
+        else: #if there are rules
+            ########## Improve this for efficiency! ################
+            new_rules = self.rules;
+            for i in range(self.nsets):
+                for j in range(len(new_rules[i])):
+                    new_rules[i][j] = mappings[new_rules[i][j]] 
+            
+            for i in range(self.nsets):
+                self.rules[i] = set() # Eliminates copies if different fuzzy sets mapped onto a single set
+            
+            for i in range(self.nsets):
+                self.rules[mappings[i]].update(set(new_rules[i]))  # Eliminates copies if different fuzzy sets mapped onto a single set
+            
+            ## Update rules with the new point
+            antecendent = self.fuzzify(self.current)
+            consequent = self.fuzzify(x)
+            
+            self.rules[antecendent].update(consequent)
+            
+            ## Update current state
+            self.current = x
+            self.partitions = new_partitions;
+            self.fuzzy_sets = new_fuzzy_sets;
+            ##########################
+            
+        # Make forecast
+        return self.predict(x)
     
-    def fuzzify(self, x, ftype = 'max', membership_matrix = None):
+    def fuzzify(self, x, membership_matrix = None):
         """Fuzzify a value.
 
         Fuzzify a value in accordance with current partitions / fuzzy sets
@@ -61,7 +149,7 @@ class FTS(object):
         if membership_matrix is None:
             membership_matrix = self.fuzzy_sets.compute_memberships(x)
         
-        if ftype == 'max':
+        if self.ftype == 'max':
             return np.argmax(membership_matrix, 1)
             # I am assuming that any given x will be a member of at least one of the fuzzy sets 
             # TODO: Figure out what to do in case the assumption is not true
@@ -70,7 +158,7 @@ class FTS(object):
     
     def generate_rules(self):
         
-        fuzzified_data = self.fuzzify(self.data,self.ftype)
+        fuzzified_data = self.fuzzify(x = self.data)
         self.rules = []
                 
         # Start using sets because it is neater
@@ -78,7 +166,6 @@ class FTS(object):
             self.rules.append(set())
         
         for i in range(len(fuzzified_data)-1):
-            fuzzified_data[i]
             self.rules[fuzzified_data[i]].update(set([fuzzified_data[i+1]]))
         
         # Convert back to lists 
@@ -99,13 +186,13 @@ class FTS(object):
                     s = s + 'A{} '.format(self.rules[i][j]+1)     
                 print(s)   
     
-    def predict(self, x, dtype = 'center average'):
+    def predict(self, x):
         
-        if dtype == 'center average':
+        if self.dtype == 'center average':
             return self.defuzzify_center_average(x)
-        elif dtype == 'weighted average':
+        elif self.dtype == 'weighted average':
             return self.defuzzify_weighted_average(x)
-        elif dtype == 'persistence':
+        elif self.dtype == 'persistence':
             return self.persistence(x)
             
     def persistence(self, x):
@@ -166,7 +253,7 @@ class FTS(object):
         membership_matrix = self.fuzzy_sets.compute_memberships(x)
         print(np.sum(membership_matrix,1))
         centers = self.fuzzy_sets.centers;
-        fuzzified_data = self.fuzzify(x,self.ftype,membership_matrix = membership_matrix)
+        fuzzified_data = self.fuzzify(x,membership_matrix = membership_matrix)
         
         def_vals = np.zeros(len(fuzzified_data)) #storage for the defuzified values
         # Find matching antecendents
