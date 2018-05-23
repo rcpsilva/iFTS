@@ -9,6 +9,7 @@ import numpy as np
     
 def generate_uniform_triangular_partitions(lb, ub, num):
     
+    print('Gen partitions: {} {} {}'.format(lb,ub,num))
     centers = np.linspace(lb, ub, num)
     width = abs(centers[0]-centers[1])
     partitions = []
