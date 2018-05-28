@@ -23,7 +23,7 @@ class IncrementalFTS(object):
         self.nsets = 7
         
         self.rules = None
-        self.partitions = None
+        self.partitioner = None
         self.fuzzy_sets = None
         
         self.ftype = ftype
@@ -35,29 +35,45 @@ class IncrementalFTS(object):
         self.partitions = None
         self.fuzzy_sets = None
         self.current = data[len(data)-1]
+        self.nsigmas = 3;
         
         # Stores basic data stats
         self.datastats = DataStats(np.mean(data), np.std(data), np.min(data), np.max(data),n = len(data))
         
+        ''''
         # Define universe of discourse
         if not lb:
-            self.ulb = np.minimum(self.datastats.min,self.datastats.mean - 3*self.datastats.std)
+            self.ulb = np.minimum(self.datastats.min,self.datastats.mean - self.nsigmas*self.datastats.std)
         else:
             self.ulb = lb
         
         if not ub:   
-            self.uub = np.maximum(self.datastats.max,self.datastats.mean + 3*self.datastats.std)
+            self.uub = np.maximum(self.datastats.max,self.datastats.mean + self.nsigmas*self.datastats.std)
         else:
             self.uub = ub
-             
+        '''
+        
+        if not lb:
+            self.ulb =  self.datastats.min
+        else:
+            self.ulb = lb
+            
+        if not ub:
+            self.uub =  self.datastats.max
+        else:
+            self.uub = ub
+        
+            
         # Generate initial partions    
         if partition_method == 'triangular uniform':
-            self.partitions = partitioner.generate_uniform_triangular_partitions(self.ulb, self.uub, self.nsets)
+            self.partitioner = partitioner.generate_uniform_triangular_partitions
+            self.partitions = self.partitioner(self.ulb, self.uub, self.nsets)
             self.fuzzy_sets = tfs.TriangularFuzzySets(self.partitions)
-    
-        else:
-            self.current = data;
-    
+        elif partition_method == 'triangular uniform1':
+            self.partitioner = partitioner.generate_uniform_triangular_partitions1
+            self.partitions = self.partitioner(self.ulb, self.uub, self.nsets)
+            self.fuzzy_sets = tfs.TriangularFuzzySets(self.partitions)
+        
     def __getattr__(self, attr):
         
         if attr == 'fuzzy_sets':
@@ -75,10 +91,10 @@ class IncrementalFTS(object):
         else:
             raise AttributeError(attr) 
         
-    def run(self,x,idx,vals):
+    def run(self,x,idx,vals,p):
         
         # Update universe of discourse
-        print('## Update mean and std')
+        #print('## Update mean and std')
         n = self.datastats.n + 1 
         newmean = self.datastats.mean + (x - self.datastats.mean)/n
         var = self.datastats.std**2
@@ -92,77 +108,70 @@ class IncrementalFTS(object):
         ## Update mean
         self.datastats.min = np.minimum(self.datastats.min,x)
         
-        print('# Updated stats \n {} | {} | {} | {} \n ----------------'.format(self.datastats.min,self.datastats.mean,self.datastats.max,self.datastats.std))
+        #print('# Updated stats \n {} | {} | {} | {} \n ----------------'.format(self.datastats.min,self.datastats.mean,self.datastats.max,self.datastats.std))
         
         
-        print('#Update universe of discourse')
-        self.ulb = np.minimum(self.datastats.min,self.datastats.mean - 3*self.datastats.std)
-        self.uub = np.maximum(self.datastats.max,self.datastats.mean + 3*self.datastats.std)
+        #print('#Update universe of discourse')
+        self.ulb = np.minimum(self.datastats.min,self.datastats.mean - self.nsigmas*self.datastats.std)
+        self.uub = np.maximum(self.datastats.max,self.datastats.mean + self.nsigmas*self.datastats.std)
+        #self.ulb = np.minimum(self.datastats.min,x)
+        #self.uub = np.maximum(self.datastats.max,x)
         
         
-        print('# Generate partitions and fuzzy sets')
-        new_partitions = partitioner.generate_uniform_triangular_partitions(self.ulb, self.uub, self.nsets)
+        #print('# Generate partitions and fuzzy sets')
+        new_partitions = self.partitioner(self.ulb, self.uub, self.nsets)
         new_fuzzy_sets = tfs.TriangularFuzzySets(self.partitions)
         
-        print('# Map old fuzzy sets to new ones')
         ## Fuzzify old centers according to the new fuzzy sets
         centers_membership_matrix = new_fuzzy_sets.compute_memberships(self.fuzzy_sets.centers)
         mappings = self.fuzzify(self.fuzzy_sets.centers, membership_matrix = centers_membership_matrix)
         
-        self.partitions = new_partitions;
-        self.fuzzy_sets = new_fuzzy_sets;
+        self.partitions = new_partitions
+        self.fuzzy_sets = new_fuzzy_sets
         
-        print('# Update rules')
+        #print('# Update rules')
         if not self.rules: # If there are no rules
             self.generate_rules()
+            # Transforming rules into sets
+            for i in range(self.nsets):
+                self.rules[i] = set(self.rules[i])
         else: #if there are rules
-            ########## Improve this for efficiency! ################
-            new_rules = self.rules;
-            for i in range(self.nsets):
-                for j in range(len(new_rules[i])):
-                    new_rules[i][j] = mappings[new_rules[i][j]] 
+            ## Check if there are updates to be made
+            #if not ((mappings == np.arange(0,self.nsets)).all()): #Update rules
+                ########## Improve this for efficiency! ################
+                new_rules = self.rules.copy()
+                for i in range(self.nsets):
+                    for j in range(len(new_rules[i])):
+                        new_rules[i][j] = mappings[new_rules[i][j]] 
             
-            for i in range(self.nsets):
-                self.rules[i] = set() # Eliminates copies if different fuzzy sets mapped onto a single set
+                for i in range(self.nsets):
+                    self.rules[i] = set() # Eliminates copies if different fuzzy sets are mapped onto a single set
             
-            for i in range(self.nsets):
-                self.rules[mappings[i]].update(set(new_rules[i]))  # Eliminates copies if different fuzzy sets mapped onto a single set
+                for i in range(self.nsets):
+                    self.rules[mappings[i]].update(set(new_rules[i]))  # Eliminates copies if different fuzzy sets mapped onto a single set
+                ########################################################
+            #else: # Transforming rules into sets
+            #    for i in range(self.nsets):
+            #        self.rules[i] = set(self.rules[i])
+                
             
-            ## Update rules with the new point
-            print('Current {}'.format(self.current))
-            
-            antecendent = self.fuzzify([self.current])
-            consequent = self.fuzzify([x])
-            
-            print('Antecendent {} Consequent {}'.format(antecendent, consequent))
-            
-            
-            self.rules[antecendent[0]].update(consequent)
+        ## Update rules with the new point
+        antecendent = self.fuzzify([self.current])
+        consequent = self.fuzzify([x])
+                       
+        self.rules[antecendent[0]].update(consequent)
             
             ## Update current state
             ### Convert back to lists 
-            for i in range(len(self.rules)):
-                self.rules[i] = list(self.rules[i])
+        for i in range(len(self.rules)):
+            self.rules[i] = list(self.rules[i])
             
-            self.current = x
-            ##########################
-            
-            ################### Plots #################################
-            plt.cla()
-            
-            self.fuzzy_sets.plot_fuzzy_sets(2000, 15000,begin = -500 , scale = 400, nsteps = 1000)
-            plt.plot(np.arange(idx),vals[0:idx])
-            np.linspace
-            
-            plt.draw()
-            plt.pause(1e-17)
-            time.sleep(0.01)
-            
-            ###########################################################
-            
+        self.current = x
+        ##########################         
             
         # Make forecast
-        return self.predict([x])
+        p.append(self.predict([x]))
+        return p
     
     def fuzzify(self, x, membership_matrix = None):
         """Fuzzify a value.
@@ -240,6 +249,9 @@ class IncrementalFTS(object):
             y: membership matrix
             
         """
+        if not self.rules: # If there are no rules
+            self.generate_rules()
+        
         # Fuzzify
         membership_matrix = self.fuzzy_sets.compute_memberships(x)
         centers = self.fuzzy_sets.centers;
