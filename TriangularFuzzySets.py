@@ -3,7 +3,7 @@ Created on May 15, 2018
 
 @author: rcpsi
 '''
-from FuzzySets import FuzzySets
+from iFTS.FuzzySets import FuzzySets
 import numpy as np
 
 class TriangularFuzzySets(FuzzySets):
@@ -43,6 +43,13 @@ class TriangularFuzzySets(FuzzySets):
         a = setparams[0];
         b = setparams[1];
         c = setparams[2];
+        
+        #print('Partitioner: {} {} {}'.format(a,b,c))
+        
+        if np.isinf(-a) and x < b:
+            return 1
+        if np.isinf(c) and x > b:
+            return 1
         
         if x < a or x > c:
             return 0

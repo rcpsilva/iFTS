@@ -5,20 +5,34 @@ Created on May 11, 2018
 '''
 
 import numpy as np
+import iFTS.Partioner as partitioner
+import iFTS.TriangularFuzzySets as tfs
 
 class FTS(object):
     '''
     classdocs
     '''
 
-    def __init__(self, fuzzy_sets, data, ftype = 'max'):
+    def __init__(self, data, lb = None, ub = None, partition_method = 'triangular uniform', ftype = 'max'):
         '''
         Constructor
         '''
-        self.fuzzy_sets = fuzzy_sets 
+        #self.fuzzy_sets = fuzzy_sets 
         self.rules = None
         self.ftype = ftype
         self.data = data
+        self.def_vals = [];
+        
+        # Define universe of discourse
+        if not lb:
+            lb = np.min(data)
+        if not ub:
+            ub = np.max(data)
+        
+        if partition_method == 'triangular uniform':
+            self.partitions = partitioner.generate_uniform_triangular_partitions(lb, ub, 7)
+            self.fuzzy_sets = tfs.TriangularFuzzySets(self.partitions)
+            
     
     def __getattr__(self, attr):
         
@@ -26,6 +40,8 @@ class FTS(object):
             return self.fuzzy_sets
         elif attr == 'rules':
             return self.rules
+        elif attr == 'def_vals':
+            return self.def_vals
         else:
             raise AttributeError(attr) 
     
@@ -91,14 +107,12 @@ class FTS(object):
             return self.defuzzify_weighted_average(x)
         elif dtype == 'persistence':
             return self.persistence(x)
-        elif dtype == 'defuzz1':
-            print('Running defuzz 1')
-            return self.defuzz1(x)
             
     def persistence(self, x):
+        self.def_vals = x
         return x
     
-    def defuzz1(self,x):
+    def defuzzify_weighted_average(self,x):
         """Computes the defuzzified (numerical) values of x according to the model defined by this fts .
 
         Args:
@@ -117,34 +131,25 @@ class FTS(object):
         for i in range(len(x)):
             
             memberships = membership_matrix[i,:]                        
-            # If the data point has no pertinence with respect to any rule use the rule with the closest center to the data point\
-            if np.sum(memberships) == 0:
-                dists = (centers-x[i])**2
-                closest = np.argmin(dists);
-                def_vals[i] = centers[closest]
-                print('whooops')
-            else:    
-                # Compute the degree of fulfilment (df) of the rule
-            
-                # Defuzzify
-            
-                #For each rule
-                match = True
-                for j in range(len(self.rules)):
-                    # Compute the membership of x in the antecendent j
-                    mu = memberships[j]
-                    term = 0;
-                    
+        
+            # Defuzzify
+            #For each rule
+            for j in range(len(self.rules)):
+                # Compute the membership of x in the antecendent j
+                mu = memberships[j]
+                term = 0;
+                 
+                if self.rules[j]:
                     for k in range(len(self.rules[j])):
                         term = term + centers[self.rules[j][k]]
                     
-                    if self.rules[j]:
-                        def_vals[i] = def_vals[i] + (term/len(self.rules[j]))*mu 
-                    else:
-                        match = False
-            if not match:
-                def_vals[i] = x[i] 
+                    def_vals[i] = def_vals[i] + (term/len(self.rules[j]))*mu
+                else: # If the rule is empty, adopt persistence
+                    #print('[{}] : {}'.format(j,mu))
+                    def_vals[i] = def_vals[i] + centers[j]*mu
+              
         # Return defuzified values
+        self.def_vals = def_vals
         return def_vals 
     
     def defuzzify_center_average(self,x):
@@ -188,57 +193,7 @@ class FTS(object):
                 def_vals[i] = def_vals[i] / (df * len(matching_rule))    
 
         # Return defuzified values
-        return def_vals 
-     
-    def defuzzify_weighted_average(self,x):
-        """Computes the defuzzified (numerical) values of x according to the model defined by this fts .
-
-        Args:
-            x: Value or array of values 
-
-        Returns:
-            y: membership matrix
-            
-        """
-        # Fuzzify
-        membership_matrix = self.fuzzy_sets.compute_memberships(x)
-        centers = self.fuzzy_sets.centers;
-        #fuzzified_data = self.fuzzify(x,self.ftype,membership_matrix = membership_matrix)
-        
-        def_vals = np.zeros(len(x)) # storage for the defuzified values
-        # Find matching antecendents
-        for i in range(len(x)):
-            # Compute the degree of fulfilment (df) of the rule
-            df = membership_matrix[i,:]
-            
-            # Defuzzify
-            count = 0 #Counts the number of matching rules
-            for j in range(len(self.rules)):
-                if df[j] > 0 and self.rules[j]:
-                    count = count+1
-                    acc = 0
-                    for k in range(len(self.rules[j])):
-                        acc = acc + centers[self.rules[j][k]] * df[j]
-                    
-                    acc = acc / (df[j]*len(self.rules[j]))
-                    
-                    def_vals[i] = def_vals[i] + acc 
-                    
-            # If the data point has no pertinence with respect to any rule use the rule with the closest center to the data point\
-            if count == 0:
-                dists = (centers-x[i])**2
-                closest = np.argmin(dists);
-                def_vals[i] = centers[closest]
-            else:
-                def_vals[i] = def_vals[i]/count
-                
-        # Return defuzified values
-        return def_vals
-    
-    
-    def update_partitions(self,partitions):
-        
-        self.partitions = partitions
-        
+        self.def_vals = def_vals
+        return def_vals     
         
     
