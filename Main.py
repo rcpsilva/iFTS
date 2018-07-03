@@ -55,57 +55,61 @@ def plot_data(data):
 def main():
 
     #vals = TAIEX.get_data()
-    vals = generate_data(1000)
-    vals = vals[:,1];
-    vals = np.concatenate([vals,vals])
+    data = TAIEX.get_data()
+    data = list(data[0:1500]) +  list(data[0:1500]) +  list(data[0:1500])
+    vals = data
+    #vals = generate_data(1000)
+    #vals = vals[:,1];
+    #vals = np.concatenate([vals,vals])
     
-    print(vals.shape)
-     
-    train_end = 1500
-     
-    nonifts1 = IncrementalFTS(data = vals[0:train_end], dtype = 'weighted average', partition_method = 'triangular uniform', incremental = False)
-    p1 = nonifts1.predict(vals[train_end:2000])
-     
-    #plt.plot(np.arange(4000),vals[0:4000],'r')
-    #plt.plot(np.arange(train_end,4000),p1,'b')
-     
-    plt.plot(np.arange(2000),vals[0:2000],'r')
-    plt.plot(np.arange(train_end,2000),p1,'b')
-     
-     
-    plt.show()
+#     print(vals.shape)
+#      
+#     train_end = 1500
+#      
+#     nonifts1 = IncrementalFTS(data = vals[0:train_end], dtype = 'weighted average', partition_method = 'triangular uniform', incremental = False)
+#     p1 = nonifts1.predict(vals[train_end:2000])
+#      
+#     #plt.plot(np.arange(4000),vals[0:4000],'r')
+#     #plt.plot(np.arange(train_end,4000),p1,'b')
+#      
+#     plt.plot(np.arange(2000),vals[0:2000],'r')
+#     plt.plot(np.arange(train_end,2000),p1,'b')
+#      
+#      
+#     plt.show()
     
     
     #===========================================================================
-    # train_end = 2    
-    # fts = IncrementalFTS(data = vals[0:train_end], dtype = 'weighted average', partition_method = 'triangular uniform', incremental = True)
-    # # Train FTS
-    # #fts.generate_rules()
-    # #fts.print_rules()
-    # 
-    # p = [];
-    #     
-    # for i in range(1998):
-    #     idx = i
-    #     p = fts.run(vals[train_end+i],i,vals,p)
-    #             ################### Plots #################################
-    #     plt.cla()
-    #         
-    #     #axes = plt.gca()
-    #     #axes.set_xlim([-1000,3000])
-    #         
-    #     #fts.fuzzy_sets.plot_fuzzy_sets(-100, 600,begin = -600 , scale = 400, nsteps = 1000)
-    #     fts.fuzzy_sets.plot_fuzzy_sets(2000, 15000,begin = -500 , scale = 400, nsteps = 1000)
-    #         
-    #     plt.plot(np.arange(idx+1)+2,p,'b')    
-    #         
-    #     plt.plot(np.arange(train_end+i),vals[0:train_end+i],'r')
-    #     
-    #     plt.draw()
-    #     plt.pause(1e-17)
-    #     time.sleep(0.01)
-    #         
-    #         
+    train_end = 2    
+    fts = IncrementalFTS(data = vals[0:train_end], dtype = 'weighted average', partition_method = 'triangular uniform', incremental = True)
+    # Train FTS
+    #fts.generate_rules()
+    #fts.print_rules()
+     
+    p = [];
+         
+    for i in range(len(vals[2:len(vals)])):
+        idx = i
+        
+        p = fts.run(vals[train_end+i],i,vals,p)
+                ################### Plots #################################
+        plt.cla()
+             
+        #axes = plt.gca()
+        #axes.set_xlim([-1000,3000])
+             
+        #fts.fuzzy_sets.plot_fuzzy_sets(-100, 600,begin = -600 , scale = 400, nsteps = 1000)
+        fts.fuzzy_sets.plot_fuzzy_sets(2000, 15000,begin = -500 , scale = 400, nsteps = 1000)
+             
+        plt.plot(np.arange(idx+1)+2,p,'b')    
+             
+        plt.plot(np.arange(train_end+i),vals[0:train_end+i],'r')
+         
+        plt.draw()
+        plt.pause(1e-17)
+        time.sleep(0.01)
+             
+             
     #     ###########################################################
     #===========================================================================
         

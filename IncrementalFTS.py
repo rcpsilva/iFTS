@@ -108,12 +108,18 @@ class IncrementalFTS(object):
         ## Update mean
         self.datastats.min = np.minimum(self.datastats.min,x)
         
+        
+        self.datastats.n += 1
         #print('# Updated stats \n {} | {} | {} | {} \n ----------------'.format(self.datastats.min,self.datastats.mean,self.datastats.max,self.datastats.std))
         
         
         #print('#Update universe of discourse')
         self.ulb = np.minimum(self.datastats.min,self.datastats.mean - self.nsigmas*self.datastats.std)
         self.uub = np.maximum(self.datastats.max,self.datastats.mean + self.nsigmas*self.datastats.std)
+        
+        #self.ulb = self.datastats.mean - self.nsigmas*self.datastats.std
+        #self.uub = self.datastats.mean + self.nsigmas*self.datastats.std
+        
         #self.ulb = np.minimum(self.datastats.min,x)
         #self.uub = np.maximum(self.datastats.max,x)
         
@@ -144,11 +150,14 @@ class IncrementalFTS(object):
                     for j in range(len(new_rules[i])):
                         new_rules[i][j] = mappings[new_rules[i][j]] 
             
+                #self.rules = [set(r) for r in new_rules]
+                
                 for i in range(self.nsets):
                     self.rules[i] = set() # Eliminates copies if different fuzzy sets are mapped onto a single set
             
                 for i in range(self.nsets):
                     self.rules[mappings[i]].update(set(new_rules[i]))  # Eliminates copies if different fuzzy sets mapped onto a single set
+                
                 ########################################################
             #else: # Transforming rules into sets
             #    for i in range(self.nsets):
@@ -165,7 +174,9 @@ class IncrementalFTS(object):
             ### Convert back to lists 
         for i in range(len(self.rules)):
             self.rules[i] = list(self.rules[i])
-            
+        
+        self.print_rules()
+        
         self.current = x
         ##########################         
             
